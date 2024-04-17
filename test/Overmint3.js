@@ -14,18 +14,24 @@ describe(NAME, function () {
 
         const VictimFactory = await ethers.getContractFactory(NAME);
         const victimContract = await VictimFactory.deploy();
+        const AttackerFactory = await ethers.getContractFactory("Overmint3Attcker");
+        //const attackerContract = await AttackerFactory.deploy();
 
-        return { victimContract, attackerWallet };
+        return { victimContract, attackerWallet, AttackerFactory };
     }
 
     describe("exploit", async function () {
-        let victimContract, attackerWallet;
+        let victimContract, attackerWallet, AttackerFactory;
         before(async function () {
-            ({ victimContract, attackerWallet } = await loadFixture(setup));
+            ({ victimContract, attackerWallet, AttackerFactory } = await loadFixture(setup));
         })
 
         it("conduct your attack here", async function () {
+            await AttackerFactory.connect(attackerWallet).deploy(victimContract.address);
+            // let tx = await AttackerFactory.connect(attackerWallet).deploy(victimContract.address);
 
+            // let receipt = await tx.wait();
+            // console.log(receipt.events?.filter((x) => {return x.event == "Transfer"}));
         });
 
         after(async function () {

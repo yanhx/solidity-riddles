@@ -50,7 +50,9 @@ describe(NAME, function () {
 
 		// prettier-ignore
 		it("conduct your attack here", async function () {
-  
+			await attackerContract.connect(attackerWallet).deposit(depositoorContract.address);
+			await time.increase(6*24*60*60);
+			await attackerContract.connect(attackerWallet).attack();
       });
 
 		after(async function () {

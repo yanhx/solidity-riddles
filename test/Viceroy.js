@@ -17,22 +17,30 @@ describe("Viceroy", async function () {
     )
     attacker = await AttackerFactory.connect(attackerWallet).deploy()
     await attacker.deployed()
+    console.log("attacker");
+    console.log(attacker.address);
 
     const OligarchFactory = await ethers.getContractFactory("OligarchyNFT")
     oligarch = await OligarchFactory.deploy(attacker.address)
     await oligarch.deployed()
+    console.log("oligarch");
+    console.log(oligarch.address);
 
     const GovernanceFactory = await ethers.getContractFactory("Governance")
     governance = await GovernanceFactory.deploy(oligarch.address, {
       value: BigNumber.from("10000000000000000000"),
     })
     await governance.deployed()
+    console.log("governance");
+    console.log(governance.address);
 
     const walletAddress = await governance.communityWallet()
     communityWallet = await ethers.getContractAt(
       "CommunityWallet",
       walletAddress,
     )
+    console.log("walletAddress");
+    console.log(walletAddress);
     expect(await ethers.provider.getBalance(walletAddress)).equals(
       BigNumber.from("10000000000000000000"),
     )
@@ -40,7 +48,8 @@ describe("Viceroy", async function () {
 
   // prettier-ignore;
   it("conduct your attack here", async function () {
-    await attacker.attack(governance);
+    console.log("here");
+    await attacker.attack(governance.address);
   });
 
   after(async function () {

